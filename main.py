@@ -1,19 +1,38 @@
-from database.connection import create_connection
-from database.models import create_tables
-from ui.menu import main_menu
+from database.connection import DatabaseManager
+from ui.menu import MainMenu
 
-def main():
-    # Connection to database
-    conn = create_connection()
+class FinanceApp:
+    def __init__(self):
+        self._db_manager = DatabaseManager()
 
-    # Create necessary tables if not already exist
-    create_tables(conn)
+    def run(self):
+        """
+        Run the application.
 
-    # Display main menu
-    main_menu(conn)
+        Connects to the database, creates necessary tables,
+        instantiates the main menu, and displays it.
 
-    # Close database connection
-    conn.close()
+        Args:
+            None
 
-if __name__ == '__main__':
-    main()
+        Returns:
+            None
+        """
+        try:
+            # Connect to the database
+            self._db_manager.connect()
+            # Create necessary tables
+            self._db_manager.create_tables()
+            # Instantiate MainMenu
+            main_menu = MainMenu(self._db_manager.get_connection())
+            # Display main menu
+            main_menu.display()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        finally:
+            # Close the database connection
+            self._db_manager.close()
+
+if __name__ == "__main__":
+    app = FinanceApp()
+    app.run()
