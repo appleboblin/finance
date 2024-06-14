@@ -2,33 +2,35 @@
     description = "Finance application project in python, node required for database editing";
 
     inputs = {
-        nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+        nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+        devenv.url = "github:cachix/devenv";
     };
 
-    outputs = { self , nixpkgs ,... }: let
-        system = "x86_64-linux";
-        # system = "x86_64-darwin";
-    in {
-        devShells."${system}".default = let
-        pkgs = import nixpkgs {
-            inherit system;
-        };
-        in pkgs.mkShell {
-            # create an environment with both Node.js and Python
+    outputs = inputs @ { flake-parts, nixpkgs, ... }:
+        flake-parts.lib.mkFlake { inherit inputs; } {
+        imports = [ inputs.devenv.flakeModule ];
+        systems = nixpkgs.lib.systems.flakeExposed;
+
+        perSystem = { config, self', inputs', pkgs, system, ... }: {
+            devenv.shells.default = {
             packages = with pkgs; [
-            nodejs_20
-            nodePackages.npm
-            sqlite
-            (python312.withPackages (pythonPkgs: with pythonPkgs; [
-                tkinter
-            ]))
+                nodejs_20
+                nodePackages.npm
+                sqlite
             ];
 
-            shellHook = ''
-            echo "node `${pkgs.nodejs}/bin/node --version`"
-            venv="$(cd $(dirname $(which python)); cd ..; pwd)"
-            ln -Tsf "$venv" .venv
-        '';
+            dotenv.disableHint = true;
+            languages.javascript.enable = true;
+            languages.python = {
+                enable = true;
+                package = pkgs.python3.withPackages (ps: with ps; [
+                flake8
+                black
+                tkinter
+                ]);
+                venv.enable = true;
+            };
+            };
         };
     };
 }
